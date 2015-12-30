@@ -193,10 +193,16 @@ CallMediaPipeline.prototype.release = function() {
 /* server startup */
 var asUrl = url.parse(argv.asUri);
 var port = asUrl.port;
-var server = app.listen(port, function() {
+var server = https.createServer(options, app).listen(port, function() {
 	console.log('WebRTC Server Started');
 	console.log('Open ' + url.format(asUrl) + ' with a WebRTC capable browser');
 });
+
+var wss = new ws.Server({
+    server : server,
+    path : '/one2one'
+});
+
 
 var wss = new ws.Server({
 	server : server,
