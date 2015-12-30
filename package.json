@@ -1,0 +1,30 @@
+{
+  "name": "kurento-webrtc",
+  "version": "0.1.0",
+  "description": "Node.js server/client for Kurento Media Server.",
+  "keywords": [
+    "Kurento",
+    "WebRTC"
+  ],
+  "homepage": "https://github.com/lhaverkamp/kurento-webrtc#readme",
+  "bugs": {
+    "url": "https://github.com/lhaverkamp/kurento-webrtc/issues"
+  },
+  "license": "ISC",
+  "author": "Laura Haverkamp <laura@haverkamp.us>",
+  "main": "server.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lhaverkamp/kurento-webrtc.git"
+  },
+  "scripts": {
+    "postinstall": "cd static && bower install"
+  },
+  "dependencies": {
+    "express": "^4.13.3",
+    "minimist": "^1.2.0",
+    "ws": "^1.0.0",
+    "kurento-client": "6.2.0"
+  },
+  "private": true
+}
