@@ -10,24 +10,25 @@
 
 <link rel="stylesheet"
 	href="bower_components/bootstrap/dist/css/bootstrap.min.css">
+<link rel="stylesheet" href="bower_components/demo-console/index.css">
 <link rel="stylesheet"
 	href="bower_components/ekko-lightbox/dist/ekko-lightbox.min.css">
 <link rel="stylesheet" href="css/kurento.css">
 
+<script src="bower_components/adapter.js/adapter.js"></script>
 <script src="bower_components/jquery/dist/jquery.min.js"></script>
 <script src="bower_components/bootstrap/dist/js/bootstrap.min.js"></script>
-<script src="bower_components/ekko-lightbox/dist/ekko-lightbox.min.js"></script>
+<script src="bower_components/demo-console/index.js"></script>
 <script src="bower_components/draggabilly/dist/draggabilly.pkgd.min.js"></script>
-<script src="bower_components/adapter.js/adapter.js"></script>
+<script src="bower_components/ekko-lightbox/dist/ekko-lightbox.min.js"></script>
 
 <script src="bower_components/kurento-utils/js/kurento-utils.js"></script>
 
-<script src="js/console.js"></script>
 <script src="js/index.js"></script>
 <title>Kurento Tutorial 4: Video Call 1 to 1 with WebRTC</title>
 </head>
-
 <body>
+
 	<header>
 		<div class="navbar navbar-inverse navbar-fixed-top">
 			<div class="container">
@@ -40,13 +41,15 @@
 					id="bs-example-navbar-collapse-1">
 					<ul class="nav navbar-nav navbar-right">
 						<li><a
-							href="https://github.com/Kurento/kurento-tutorial-node/tree/develop/kurento-one2one-call"><span
-								class="glyphicon glyphicon-file"></span> Source Code</a></li>
+							href="https://github.com/Kurento/kurento-tutorial-node/tree/develop/kurento-one2one-call">
+								<span class="glyphicon glyphicon-file"></span> Source Code
+						</a></li>
 					</ul>
 				</div>
 			</div>
 		</div>
 	</header>
+
 	<div class="container">
 		<div class="page-header">
 			<h1>Tutorial 4: Video Call 1 to 1 with WebRTC</h1>
@@ -83,32 +86,32 @@
 				<label class="control-label" for="name">Name</label>
 				<div class="row">
 					<div class="col-md-6">
-						<input id="name" name="name" class="form-control" type="text"
-							onkeydown="if (event.keyCode == 13) register();" />
+						<input id="name" name="name" class="form-control" type="text" />
 					</div>
 					<div class="col-md-6 text-right">
-						<a id="register" href="#" class="btn btn-primary"
-							onclick="register(); return false;"><span
-							class="glyphicon glyphicon-plus"></span> Register</a>
+						<a id="register" href="#" class="btn btn-primary"> <span
+							class="glyphicon glyphicon-plus"></span> Register
+						</a>
 					</div>
 				</div>
-
 				<br /> <br /> <label class="control-label" for="peer">Peer</label>
 				<div class="row">
 					<div class="col-md-6">
-						<input id="peer" name="peer" class="form-control" type="text"
-							onkeydown="if (event.keyCode == 13) call();">
+						<input id="peer" name="peer" class="form-control" type="text">
 					</div>
 					<div class="col-md-6 text-right">
-						<a id="call" href="#" class="btn btn-success"
-							onclick="call(); return false;"><span
-							class="glyphicon glyphicon-play"></span> Call</a> <a id="terminate"
-							href="#" class="btn btn-danger" onclick="stop(); return false;"><span
-							class="glyphicon glyphicon-stop"></span> Stop</a>
+						<a id="call" href="#" class="btn btn-success"> <span
+							class="glyphicon glyphicon-play"></span> Call
+						</a> <a id="terminate" href="#" class="btn btn-danger"> <span
+							class="glyphicon glyphicon-stop"></span> Stop
+						</a>
 					</div>
 				</div>
-				<br /> <label class="control-label" for="console">Console</label>
-				<div id="console"></div>
+				<br /> <label class="control-label" for="console">Console</label><br>
+				<br>
+				<div id="console" class="democonsole">
+					<ul></ul>
+				</div>
 			</div>
 			<div class="col-md-7">
 				<div id="videoBig">
@@ -127,19 +130,22 @@
 		<div class="foot-fixed-bottom">
 			<div class="container text-center">
 				<hr />
-				<div class="row">&copy; 2014 Kurento</div>
+				<div class="row">&copy; 2014-2015 Kurento</div>
 				<div class="row">
 					<div class="col-md-4">
-						<a href="http://www.urjc.es"><img src="img/urjc.gif"
-							alt="Universidad Rey Juan Carlos" height="50px" /></a>
+						<a href="http://www.urjc.es"> <img src="img/urjc.gif"
+							alt="Universidad Rey Juan Carlos" height="50px" />
+						</a>
 					</div>
 					<div class="col-md-4">
-						<a href="http://www.kurento.org"><img src="img/kurento.png"
-							alt="Kurento" height="50px" /></a>
+						<a href="http://www.kurento.org"> <img src="img/kurento.png"
+							alt="Kurento" height="50px" />
+						</a>
 					</div>
 					<div class="col-md-4">
-						<a href="http://www.naevatec.com"><img src="img/naevatec.png"
-							alt="Naevatec" height="50px" /></a>
+						<a href="http://www.naevatec.com"> <img src="img/naevatec.png"
+							alt="Naevatec" height="50px" />
+						</a>
 					</div>
 				</div>
 			</div>

@@ -8,23 +8,6 @@ var kurento = require('kurento-client');
 var fs = require('fs');
 var https = require('https');
 
-/* command line arguments */
-var argv = minimist(process.argv.slice(2), {
-	default: {
-		asUri: 'https://localhost:8443',
-		wsUri: 'ws://localhost:8888/kurento'
-	}
-});
-
-var options = {
-	key: fs.readFileSync('keys/server.key'),
-	cert: fs.readFileSync('keys/server.crt')
-};
-
-/* application */
-var app = express();
-app.use(express.static(path.join(__dirname, 'static')));
-
 /* global variables */
 var kurentoClient = null;
 var userRegistry = new UserRegistry();
@@ -190,19 +173,30 @@ CallMediaPipeline.prototype.release = function() {
     this.pipeline = null;
 };
 
+/* command line arguments */
+var argv = minimist(process.argv.slice(2), {
+	default: {
+		asUri: 'https://localhost:8443',
+		wsUri: 'ws://localhost:8888/kurento'
+	}
+});
+
+/* ssl certificates -- these should be replaced with real ones */
+var options = {
+	key: fs.readFileSync('keys/server.key'),
+	cert: fs.readFileSync('keys/server.crt')
+};
+
 /* server startup */
+var app = express();
+app.use(express.static(path.join(__dirname, 'static')));
+
 var asUrl = url.parse(argv.asUri);
 var port = asUrl.port;
 var server = https.createServer(options, app).listen(port, function() {
 	console.log('WebRTC Server Started');
 	console.log('Open ' + url.format(asUrl) + ' with a WebRTC capable browser');
 });
-
-var wss = new ws.Server({
-    server : server,
-    path : '/one2one'
-});
-
 
 var wss = new ws.Server({
 	server : server,
@@ -228,7 +222,7 @@ wss.on('connection', function(ws) {
 		var message = JSON.parse(_message);
 		console.log('Connection ' + sessionId + ' received message ', message);
 
-		switch (message.id) {
+		switch(message.id) {
 		case 'register':
 			register(sessionId, message.name, ws);
 			break;
@@ -251,8 +245,8 @@ wss.on('connection', function(ws) {
 
 		default:
 			ws.send(JSON.stringify({
-				id : 'error',
-				message : 'Invalid message ' + message
+				id: 'error',
+				message: 'Invalid message ' + message
 			}));
 			break;
 		}
