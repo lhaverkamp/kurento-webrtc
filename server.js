@@ -41,6 +41,7 @@ var options = {
 /* server startup */
 var app = express();
 app.use(express.static(path.join(__dirname, 'public')));
+app.use(require('./app/routes/http'));
 
 var asUrl = url.parse(argv.asUri);
 var port = asUrl.port;
@@ -49,14 +50,12 @@ var server = https.createServer(options, app).listen(port, function() {
 	console.log('Open ' + url.format(asUrl) + ' with a WebRTC capable browser');
 });
 
-// TODO add controller logic for room route
-
 var wss = new ws.Server({
 	server : server,
 	path : '/webrtc'
 });
 
-// TODO move to webrtc controller
+// TODO move to sockets controller
 // TODO request vs connection
 wss.on('connection', function(ws) {
 	var sessionId = nextUniqueId();
@@ -299,4 +298,3 @@ function onIceCandidate(sessionId, _candidate) {
         candidatesQueue[sessionId].push(candidate);
     }
 }
-
