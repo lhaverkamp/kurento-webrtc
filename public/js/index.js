@@ -96,6 +96,8 @@ window.onbeforeunload = function() {
 	ws.close();
 };
 
+// # of Server Responses
+// start, iceCandidate, stop
 ws.onmessage = function(message) {
 	var parsedMessage = JSON.parse(message.data);
 	console.info('Received message: ' + message.data);
@@ -246,8 +248,7 @@ function call() {
 		onicecandidate : onIceCandidate
 	}
 
-	webRtcPeer = kurentoUtils.WebRtcPeer.WebRtcPeerSendrecv(options, function(
-			error) {
+	webRtcPeer = kurentoUtils.WebRtcPeer.WebRtcPeerSendrecv(options, function(error) {
 		if(error) {
 			console.error(error);
 			setCallState(NO_CALL);

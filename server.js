@@ -76,7 +76,12 @@ wss.on('connection', function(ws) {
 		var message = JSON.parse(_message);
 		console.log('Connection ' + sessionId + ' received message ', message);
 
+		// TODO start, stop, onIceCandidate
+		// register, call, incomingCallResponse should be replaced with start
+		// logic in stop and onIceCandidate should be the same
 		switch(message.id) {
+		case 'start':
+			start(sessionId, ws);
 		case 'register':
 			register(sessionId, message.name, ws);
 			break;
@@ -106,6 +111,20 @@ wss.on('connection', function(ws) {
 		}
 	});
 });
+
+function start(id, ws, callback) {
+	function onError(error) {
+		console.log("Error processing start: " + error);
+		
+		ws.send(JSON.stringify({
+			id: 'startResponse',
+			response: 'rejected',
+			message: error
+		}));
+	};
+	
+	// TODO register & call logic
+}
 
 function register(id, name, ws, callback) {
 	function onError(error) {
