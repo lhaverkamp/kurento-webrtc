@@ -14,5 +14,5 @@ Node.js client and server code that gives a developer a starting point for a Web
 ## Running
 
 npm install
-npm start -- --wsUri http://<server>:<port> where `<server>:<port>` is the 
+npm start -- --wsUri http://<server>:<port>/kurento where `<server>:<port>` is the 
 configured location for the Kurento Media Server install.
