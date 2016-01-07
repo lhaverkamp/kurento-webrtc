@@ -158,6 +158,7 @@ function join(id, name, ws) {
 	room.add(caller);
 	
 	// TODO handle when room is full
+	// notify everyone in the room that a new user has joined
 	for(var i=0;i<room.size();i++) {
 		var callee = room.user(i);
 		
@@ -170,21 +171,21 @@ function join(id, name, ws) {
 	}
 };
 
-function call(from, to, sdpOffer) {
-    require('./app/models/candidates-queue').clearCandidatesQueue(from);
+function call(callerId, calleeId, sdpOffer) {
+    require('./app/models/candidates-queue').clearCandidatesQueue(callerId);
 
-	var caller = userRegistry.getById(from);
+	var caller = userRegistry.getById(callerId);
 	var rejectCause = 'waiting for users to join room';
 	
-	if(userRegistry.getById(to)) {
-		var callee = userRegistry.getById(to);
+	if(userRegistry.getById(calleeId)) {
+		var callee = userRegistry.getById(calleeId);
 		caller.sdpOffer = sdpOffer;
-		callee.peer = from;
-		caller.peer = to;
+		callee.peer = callerId;
+		caller.peer = calleeId;
 		
 		var message = {
 			id: 'incomingCall',
-			from: from
+			from: callerId
 		};
 		
 		try {
