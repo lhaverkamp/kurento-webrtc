@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Kurento Tutorial 4: Video Call 1 to 1 with WebRTC</title>
+	<script>
+		function join() {
+			var room = document.getElementById("room").value;
+			
+			location.assign(location.origin + '/' + room);
+		}
+	</script>
+</head>
+<body>
+	<header>
+	</header>
+
+	<section>
+		<input id="room" type="text" name="room"></input>
+		<button id="join-button" class="button join-button" onclick="join()">Join</button>
+	</section>
+
+	<section>
+	</section>
+	
+	<footer>
+	</footer>
+</body>
+</html>

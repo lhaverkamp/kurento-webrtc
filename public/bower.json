@@ -3,7 +3,7 @@
   "description": "Node.js server/client for Kurento Media Server.",
   "main": "index.html",
   "moduleType": [
-    "node"
+    "globals"
   ],
   "license": "ISC",
   "ignore": [
@@ -26,11 +26,12 @@
   	"url": "git+https://github.com/lhaverkamp/kurento-webrtc.git"
   },
   "dependencies": {
-    "bootstrap": "~3.3.0",
-    "ekko-lightbox": "~3.1.4",
-    "draggabilly": "~1.1.1",
     "adapter.js": "*",
-    "kurento-utils": "5.1.0"
+    "bootstrap": "~3.3.0",
+    "draggabilly": "~1.2.4",
+    "demo-console": "1.5.1",
+    "ekko-lightbox": "~3.3.0",
+    "kurento-utils": "master"
   },
   "private": true
 }
