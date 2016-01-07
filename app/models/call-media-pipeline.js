@@ -32,7 +32,7 @@ function CallMediaPipeline() {
 	this.webRtcEndpoint = {};
 };
 
-CallMediaPipeline.prototype.createPipeline = function(callerId, calleeId, ws, callback) {
+CallMediaPipeline.prototype.createPipeline = function(callerId, calleeId, callback) {
     var self = this;
     getKurentoClient(function(error, kurentoClient) {
         if(error) {
@@ -123,8 +123,11 @@ CallMediaPipeline.prototype.generateSdpAnswer = function(id, sdpOffer, callback)
 };
 
 CallMediaPipeline.prototype.release = function() {
-    if (this.pipeline) this.pipeline.release();
-    this.pipeline = null;
+	if(this.pipeline) {
+    	this.pipeline.release();
+	}
+    
+	this.pipeline = null;
 };
 
 module.exports = CallMediaPipeline;

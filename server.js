@@ -222,17 +222,17 @@ function incomingCallResponse(calleeId, from, callResponse, calleeSdp) {
 	}
 	
 	var callee = userRegistry.getById(calleeId);
-	if(!from || !userRegistry.getByName(from)) {
-		return onError(null, 'unknown from = ' + from);
+	if(!callerId || !userRegistry.getById(callerId)) {
+		return onError(null, 'unknown user = ' + callerId);
 	}
-	var caller = userRegistry.getByName(from);
+	var caller = userRegistry.getById(callerId);
 	
 	if(callResponse === 'accept') {
 		var pipeline = new CallMediaPipeline();
 		pipelines[caller.id] = pipeline;
 		pipelines[callee.id] = pipeline;
 
-		pipeline.createPipeline(caller.id, callee.id, ws, function(error) {
+		pipeline.createPipeline(caller.id, callee.id, function(error) {
 			if(error) {
 				return onError(error, error);
 			}
