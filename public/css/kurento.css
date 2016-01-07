@@ -47,8 +47,7 @@ video,#console {
 }
 
 #videoContainer {
-	position: absolute;
-	float: left;
+	position: relative;
 }
 
 #videoBig {
@@ -65,7 +64,7 @@ div#videoSmall {
 	padding: 0px;
 	position: absolute;
 	top: 15px;
-	left: 400px;
+	left: 385px;
 	cursor: pointer;
 	z-index: 10;
 	padding: 0px;

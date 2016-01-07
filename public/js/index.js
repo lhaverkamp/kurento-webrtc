@@ -1,6 +1,4 @@
 /*
- * (C) Copyright 2014-2015 Kurento (http://kurento.org/)
- *
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the GNU Lesser General Public License
  * (LGPL) version 2.1 which accompanies this distribution, and is available at
@@ -12,82 +10,76 @@
  * Lesser General Public License for more details.
  *
  */
-
 var ws = new WebSocket('wss://' + location.host + '/webrtc');
+
 var videoInput;
-var videoOutput;
+var videoOutput; // TODO multiple outputs
 var webRtcPeer;
 
-var registerName = null;
-const NOT_REGISTERED = 0;
-const REGISTERING = 1;
-const REGISTERED = 2;
-var registerState = null
-
-function setRegisterState(nextState) {
-	switch (nextState) {
-	case NOT_REGISTERED:
-		$('#register').attr('disabled', false);
-		$('#call').attr('disabled', true);
-		$('#terminate').attr('disabled', true);
-		break;
-
-	case REGISTERING:
-		$('#register').attr('disabled', true);
-		break;
-
-	case REGISTERED:
-		$('#register').attr('disabled', true);
-		setCallState(NO_CALL);
-		break;
-
-	default:
-		return;
-	}
-	registerState = nextState;
-}
-
 const NO_CALL = 0;
-const PROCESSING_CALL = 1;
-const IN_CALL = 2;
+const INITIALIZING_CALL = 1;
+const PROCESSING_CALL = 2;
+const CONNECTING_CALL = 3;
+const IN_CALL = 4;
 var callState = null
 
 function setCallState(nextState) {
 	switch (nextState) {
 	case NO_CALL:
-		$('#call').attr('disabled', false);
-		$('#terminate').attr('disabled', true);
+		$('#start').attr('disabled', false);
+		$('#stop').attr('disabled', true);
+		
+		// TODO message click start to rejoin call
+		break;
+
+	case INITIALIZING_CALL:
+		$('#start').attr('disabled', true);
+		$('#stop').attr('disabeld', true);
+		
+		// TODO connecting to server; preparing
 		break;
 
 	case PROCESSING_CALL:
-		$('#call').attr('disabled', true);
-		$('#terminate').attr('disabled', true);
+		$('#start').attr('disabled', true);
+		$('#stop').attr('disabled', true);
+		
+		// TODO Invite someone by sending the link to them
+		// waiting for other people
 		break;
+		
+	case CONNECTING_CALL:
+		$('#start').attr('disabled', true);
+		$('#stop').attr('disabled', true);
+		
+		// TODO Invite someone by sending the link to them
+		// waiting for other people
+		break;
+	
 	case IN_CALL:
-		$('#call').attr('disabled', true);
-		$('#terminate').attr('disabled', false);
+		$('#start').attr('disabled', true);
+		$('#stop').attr('disabled', false);
 		break;
+		
 	default:
 		return;
 	}
+	
 	callState = nextState;
 }
 
 window.onload = function() {
 	console = new Console();
-	setRegisterState(NOT_REGISTERED);
+
+	setCallState(NO_CALL);
+	
 	var drag = new Draggabilly(document.getElementById('videoSmall'));
 	videoInput = document.getElementById('videoInput');
 	videoOutput = document.getElementById('videoOutput');
-	document.getElementById('name').focus();
 
-	document.getElementById('register').addEventListener('click', function() {
-		register();
+	document.getElementById('start').addEventListener('click', function() {
+		join();
 	});
-	document.getElementById('call').addEventListener('click', function() {
-		call();
-	});
-	document.getElementById('terminate').addEventListener('click', function() {
+	document.getElementById('stop').addEventListener('click', function() {
 		stop();
 	});
 };
@@ -96,150 +88,144 @@ window.onbeforeunload = function() {
 	ws.close();
 };
 
-// # of Server Responses
-// start, iceCandidate, stop
+ws.onopen = function() {
+	join();
+};
+
 ws.onmessage = function(message) {
 	var parsedMessage = JSON.parse(message.data);
 	console.info('Received message: ' + message.data);
-
+	
 	switch(parsedMessage.id) {
-	case 'registerResponse':
-		registerResponse(parsedMessage);
+	case 'joinResponse':
+		joinResponse(parsedMessage);
 		break;
+		
 	case 'callResponse':
 		callResponse(parsedMessage);
 		break;
+		
 	case 'incomingCall':
 		incomingCall(parsedMessage);
 		break;
+		
 	case 'startCommunication':
 		startCommunication(parsedMessage);
 		break;
+		
 	case 'stopCommunication':
 		console.info("Communication ended by remote peer");
 		stop(true);
 		break;
+
 	case 'iceCandidate':
 		webRtcPeer.addIceCandidate(parsedMessage.candidate)
 		break;
+		
 	default:
 		console.error('Unrecognized message', parsedMessage);
 	}
 };
 
-function registerResponse(message) {
-	if(message.response == 'accepted'){
-		setRegisterState(REGISTERED);
-	} else {
-		setRegisterState(NOT_REGISTERED);
-		var errorMessage = message.message ? 
-			message.message : 'Unknown reason for register rejection.';
+function join() {
+	var room = window.location.pathname;
+	if(room == '') {
+		window.alert("You must join a room.");
+		return; // TODO redirect back to index page
+	}
+	
+	setCallState(INITIALIZING_CALL);
+	
+	var message = {
+		id: 'join',
+		room: room
+	};
+	
+	sendMessage(message);
+};
+
+function joinResponse(message) {
+	if(message.response != 'accepted') {
+		setCallState(NO_CALL);
+		
+		var errorMessage = 
+			message.message ? message.message : 
+				'Unknown reason for join rejection.';
 		console.log(errorMessage);
-		alert('Error registering user. See console for further information.');
+		alert('Error joining call. See console for further information.');
+		
+		// TODO
+		// Sorry the room is too crowded
+		// please try again later.
+	} else {
+		setCallState(PROCESSING_CALL);
+		
+		// it wasn't myself that joined, attempt to start the call
+		if(message.from != message.to) {
+			call(message.from);
+		}
+		
+		// TODO
+		// Invite someone by sending the link to them!
+		// Waiting for other people...
 	}
 };
 
-function callResponse(message) {
-	if (message.response != 'accepted') {
-		console.info('Call not accepted by peer. Closing call');
-		var errorMessage = message.message ? 
-			message.message : 'Unknown reason for call rejection.';
-		console.log(errorMessage);
-		stop(true);
-	} else {
-		setCallState(IN_CALL);
-		webRtcPeer.processAnswer(message.sdpAnswer);
-	}
+/**
+ * This method is initiated by the client whenever a new individual joins.
+ * @param userId
+ */
+function call(userId) {
+	setCallState(CONNECTING_CALL);
+	showSpinner(videoInput, videoOutput);
+	
+	var options = {
+		localVideo: videoInput,
+		remoteVideo: videoOutput,
+		onicecandidate: onIceCandidate
+	};
+		
+	webRtcPeer = kurentoUtils.WebRtcPeer.WebRtcPeerSendrecv(options, function(error) {
+		if(error) {
+			console.error(error);
+			setCallState(PROCESSING_CALL);
+		}
+		
+		this.generateOffer(function(error, sdpOffer) {
+			if(error) {
+				console.error(error);
+				setCallState(PROCESSING_CALL);
+			}
+
+			var message = {
+				id: 'call',
+				to: userId,
+				sdpOffer : sdpOffer
+			};
+			
+			sendMessage(message);
+		});
+	});
 };
 
-function startCommunication(message) {
-	setCallState(IN_CALL);
-	webRtcPeer.processAnswer(message.sdpAnswer);
-};
-
+/** 
+ * This method is executed in reply to an incoming call.
+ * 
+ * @param message
+ */
 function incomingCall(message) {
-	// If busy just reject without disturbing user
-	if(callState != NO_CALL) {
+	if(callState != PROCESSING_CALL) {
 		var response = {
 			id: 'incomingCallResponse',
-			from: message.from,
+			to: message.from,
 			callResponse: 'reject',
 			message: 'busy'
-
 		};
 		
 		return sendMessage(response);
 	}
-
-	setCallState(PROCESSING_CALL);
-	if(confirm('User ' + message.from
-			+ ' is calling you. Do you accept the call?')) {
-		showSpinner(videoInput, videoOutput);
-
-		var options = {
-			localVideo : videoInput,
-			remoteVideo : videoOutput,
-			onicecandidate : onIceCandidate
-		}
-
-		webRtcPeer = kurentoUtils.WebRtcPeer.WebRtcPeerSendrecv(options,
-			function(error) {
-				if (error) {
-					console.error(error);
-					setCallState(NO_CALL);
-				}
-
-				this.generateOffer(function(error, offerSdp) {
-					if (error) {
-						console.error(error);
-						setCallState(NO_CALL);
-					}
-					var response = {
-						id : 'incomingCallResponse',
-						from : message.from,
-						callResponse : 'accept',
-						sdpOffer : offerSdp
-					};
-					sendMessage(response);
-				});
-		});
-	} else {
-		var response = {
-			id : 'incomingCallResponse',
-			from : message.from,
-			callResponse : 'reject',
-			message : 'user declined'
-		};
-		sendMessage(response);
-		stop(true);
-	}
-};
-
-function register() {
-	var name = document.getElementById('name').value;
-	if(name == '') {
-		window.alert("You must insert your user name");
-		return;
-	}
-
-	setRegisterState(REGISTERING);
-
-	var message = {
-		id : 'register',
-		name : name
-	};
-	sendMessage(message);
-	document.getElementById('peer').focus();
-};
-
-function call() {
-	if(document.getElementById('peer').value == '') {
-		window.alert("You must specify the peer name");
-		return;
-	}
-
-	setCallState(PROCESSING_CALL);
-
+	
+	setCallState(CONNECTING_CALL);
 	showSpinner(videoInput, videoOutput);
 
 	var options = {
@@ -251,45 +237,85 @@ function call() {
 	webRtcPeer = kurentoUtils.WebRtcPeer.WebRtcPeerSendrecv(options, function(error) {
 		if(error) {
 			console.error(error);
-			setCallState(NO_CALL);
+			setCallState(PROCESSING_CALL);
 		}
-
-		this.generateOffer(function(error, offerSdp) {
-			if (error) {
+		
+		this.generateOffer(function(error, sdpOffer) {
+			if(error) {
 				console.error(error);
-				setCallState(NO_CALL);
+				setCallState(PROCESSING_CALL);
 			}
-			var message = {
-				id : 'call',
-				from : document.getElementById('name').value,
-				to : document.getElementById('peer').value,
-				sdpOffer : offerSdp
+			
+			var response = {
+				id: 'incomingCallResponse',
+				to: message.from,
+				callResponse: 'accept',
+				sdpOffer: sdpOffer
 			};
-			sendMessage(message);
+			
+			sendMessage(response);
 		});
 	});
+};
 
+/**
+ * This method is used if I initiated the connection.
+ * 
+ * @param message
+ */
+function callResponse(message) {
+	if(message.response != 'accepted') {
+		console.info('Call not accepted by peer.  Closing call.');
+		
+		var errorMessage =
+			message.message ? message.message :
+			'Unknown reason for call rejection.';
+		console.log(errorMessage);
+		
+		stop(true);
+	} else {
+		setCallState(IN_CALL);
+		
+		webRtcPeer.processAnswer(message.sdpAnswer);
+	}
+};
+
+/**
+ * This method is used if a peer initiated the connection.
+ * 
+ * @param message
+ */
+function startCommunication(message) {
+	setCallState(IN_CALL);
+	
+	webRtcPeer.processAnswer(message.sdpAnswer);
 };
 
 function stop(message) {
 	setCallState(NO_CALL);
-	if (webRtcPeer) {
+	
+	if(webRtcPeer) {
 		webRtcPeer.dispose();
 		webRtcPeer = null;
 
-		if (!message) {
+		if(!message) {
 			var message = {
 				id : 'stop'
 			}
+			
 			sendMessage(message);
 		}
 	}
+	
 	hideSpinner(videoInput, videoOutput);
 };
 
 function sendMessage(message) {
 	var jsonMessage = JSON.stringify(message);
-	console.log('Senging message: ' + jsonMessage);
+	if(message.id != 'onIceCandidate') {
+		console.log('Sending message: ' + jsonMessage);
+	}
+	
 	ws.send(jsonMessage);
 };
 
@@ -300,6 +326,7 @@ function onIceCandidate(candidate) {
 		id : 'onIceCandidate',
 		candidate : candidate
 	}
+	
 	sendMessage(message);
 };
 

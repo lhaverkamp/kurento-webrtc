@@ -12,6 +12,7 @@ var Constants = require('./app/constants');
 var UserSession = require('./app/models/user-session');
 var UserRegistry = require('./app/models/user-registry');
 var CallMediaPipeline = require('./app/models/call-media-pipeline');
+var Room = require('./app/models/room');
 
 var httpRoutes = require('./app/routes/http');
 var socketRoutes = require('./app/routes/sockets');
@@ -21,6 +22,7 @@ var kurentoClient = null;
 var userRegistry = UserRegistry;
 var pipelines = {};
 var candidatesQueue = require('./app/models/candidates-queue');
+var rooms = {};
 var idCounter = 0;
 
 function nextUniqueId() {
@@ -69,29 +71,36 @@ wss.on('connection', function(ws) {
 	ws.on(Constants.WS_EVENT_CLOSE, function() {
 		console.log('Connection ' + sessionId + ' closed');		
 		stop(sessionId);
+		
+		var user = userRegistry.getById(sessionId);
 		userRegistry.unregister(sessionId);
+		
+		// TODO refactor to remove user from room they are in
+		Object.keys(rooms).forEach(function(key, index) {
+			var room = rooms[key];
+			room.remove(user);
+			
+			if(room.size() == 0) {
+				delete rooms[key];
+			}
+		});
 	});
 
 	ws.on(Constants.WS_EVENT_MESSAGE, function(_message) {
 		var message = JSON.parse(_message);
 		console.log('Connection ' + sessionId + ' received message ', message);
-
-		// TODO start, stop, onIceCandidate
-		// register, call, incomingCallResponse should be replaced with start
-		// logic in stop and onIceCandidate should be the same
+		
 		switch(message.id) {
-		case 'start':
-			start(sessionId, ws);
-		case 'register':
-			register(sessionId, message.name, ws);
+		case 'join':
+			join(sessionId, message.room, ws);
 			break;
 
 		case 'call':
-			call(sessionId, message.to, message.from, message.sdpOffer);
+			call(sessionId, message.to, message.sdpOffer);
 			break;
 
 		case 'incomingCallResponse':
-			incomingCallResponse(sessionId, message.from, message.callResponse, message.sdpOffer);
+			incomingCallResponse(sessionId, message.to, message.callResponse, message.sdpOffer);
 			break;
 
 		case 'stop':
@@ -112,59 +121,63 @@ wss.on('connection', function(ws) {
 	});
 });
 
-function start(id, ws, callback) {
-	function onError(error) {
-		console.log("Error processing start: " + error);
-		
-		ws.send(JSON.stringify({
-			id: 'startResponse',
-			response: 'rejected',
-			message: error
-		}));
-	};
+function getRoom(name) {
+	if(!rooms[name]) {
+		rooms[name] = new Room(name);
+	}
 	
-	// TODO register & call logic
-}
+	return rooms[name];
+};
 
-function register(id, name, ws, callback) {
+/**
+ * This adds a user to the virtual room.
+ * 
+ * @param id identifier of the user
+ * @param name name of the room
+ * @param ws websocket of the user
+ */
+function join(id, name, ws) {
 	function onError(error) {
-		console.log("Error processing register: " + error);
+		console.log("Error joining room " + error);
 		
 		ws.send(JSON.stringify({
-			id: 'registerResponse',
+			id: 'joinResponse',
 			response: 'rejected',
 			message: error
 		}));
 	};
 	
 	if(!name) {
-		return onError("empty username");
+		return onError("empty room name");
 	}
 	
-	if(userRegistry.getByName(name)) {
-		return onError("user " + name + " is already registered");
-	}
+	var caller = new UserSession(id, ws);
+	var room = getRoom(name);
 	
-	userRegistry.register(new UserSession(id, name, ws));
+	userRegistry.register(caller);
+	room.add(caller);
 	
-	try {
-		ws.send(JSON.stringify({
-			id: 'registerResponse',
-			response: 'accepted'
-		}));
-	} catch(exception) {
-		onError(exception);
+	// TODO handle when room is full
+	for(var i=0;i<room.size();i++) {
+		var callee = room.user(i);
+		
+		callee.sendMessage({
+			id: 'joinResponse',
+			response: 'accepted',
+			from: caller.id,
+			to: callee.id
+		});
 	}
 };
 
-function call(callerId, to, from, sdpOffer) {
-    require('./app/models/candidates-queue').clearCandidatesQueue(callerId);
+function call(from, to, sdpOffer) {
+    require('./app/models/candidates-queue').clearCandidatesQueue(from);
 
-	var caller = userRegistry.getById(callerId);
-	var rejectCause = 'user ' + to + ' is not registered';
+	var caller = userRegistry.getById(from);
+	var rejectCause = 'waiting for users to join room';
 	
-	if(userRegistry.getByName(to)) {
-		var callee = userRegistry.getByName(to);
+	if(userRegistry.getById(to)) {
+		var callee = userRegistry.getById(to);
 		caller.sdpOffer = sdpOffer;
 		callee.peer = from;
 		caller.peer = to;
@@ -190,7 +203,7 @@ function call(callerId, to, from, sdpOffer) {
 	caller.sendMessage(message);
 };
 
-function incomingCallResponse(calleeId, from, callResponse, calleeSdp) {
+function incomingCallResponse(calleeId, callerId, callResponse, calleeSdp) {
 	require('./app/models/candidates-queue').clearCandidatesQueue(calleeId);
 
 	function onError(callerReason, calleeReason) {
@@ -281,7 +294,7 @@ function stop(sessionId) {
 		pipeline.release();
 		
 		var stopperUser = userRegistry.getById(sessionId);
-		var stoppedUser = userRegistry.getByName(stopperUser.peer);
+		var stoppedUser = userRegistry.getById(stopperUser.peer);
 		
 		stopperUser.peer = null;
 		
@@ -306,14 +319,13 @@ function onIceCandidate(sessionId, _candidate) {
     var candidate = kurento.register.complexTypes.IceCandidate(_candidate);
     var user = userRegistry.getById(sessionId);
 
-    if (pipelines[user.id] && pipelines[user.id].webRtcEndpoint && pipelines[user.id].webRtcEndpoint[user.id]) {
+    if(pipelines[user.id] && pipelines[user.id].webRtcEndpoint && pipelines[user.id].webRtcEndpoint[user.id]) {
         var webRtcEndpoint = pipelines[user.id].webRtcEndpoint[user.id];
         webRtcEndpoint.addIceCandidate(candidate);
+    } else {
+    	if(!candidatesQueue[user.id]) {
+    		candidatesQueue[user.id] = [];
+    	}
+    	candidatesQueue[sessionId].push(candidate);
     }
-    else {
-        if (!candidatesQueue[user.id]) {
-            candidatesQueue[user.id] = [];
-        }
-        candidatesQueue[sessionId].push(candidate);
-    }
-}
+};
