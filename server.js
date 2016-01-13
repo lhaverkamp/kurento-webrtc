@@ -41,9 +41,10 @@ var options = {
 };
 
 /* server startup */
+var routes = require('./app/routes/http');
 var app = express();
 app.use(express.static(path.join(__dirname, 'public')));
-app.use(require('./app/routes/http'));
+app.use(routes);
 
 var asUrl = url.parse(argv.asUri);
 var port = asUrl.port;
